@@ -213,6 +213,7 @@ def storage_page2es(each_item):
     bulk(es, actions)
     print(f"✅ 成功写入 {len(actions)} 条文档到 Elasticsearch")
 
+
 def storage_jkdata2es(each_item):
     # ES数据库中创建具有向量数据的索引
     EMBEDDING_DIM = 1024  # bge-zh-1.5 输出维度
@@ -333,7 +334,7 @@ def storage_jkdata2es(each_item):
 
 
 def update_api_info(new_doc):
-    es_index_name ="ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_api"
+    es_index_name = "ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_api"
     # 使用 update + upsert
     for item in new_doc.values():
         # 注意这里：api_config 要转成 JSON 字符串
@@ -373,7 +374,67 @@ def delete_single_index(es_index_name):
         print(f"索引 '{es_index_name}'不存在")
 
 
+def update_add_fields(es_index_name):
+    # 默认给page数据集添加字段
+    mapping_update = {
+        "properties": {
+            "company_name": {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword"}},
+                "analyzer": "ik_max_word",
+                "search_analyzer": "ik_smart"
+            },
+            "company_infomation": {
+                "type": "text",
+                "fields": {"keyword": {"type": "keyword"}},
+                "analyzer": "ik_max_word",
+                "search_analyzer": "ik_smart"
+            }
+        }
+    }
+
+    # 更新映射
+    es.indices.put_mapping(index=es_index_name, body=mapping_update)
+    print("✅ 已成功更新索引映射。")
+
+
+def update_add_fields_values(es_index_name):
+    doc_id = "690682229338275840"
+
+    update_body = {
+        "doc": {
+            "company_name": "alibaba",
+            "company_infomation": "位于浙江省杭州市"
+        }
+    }
+
+    # 更新单个文档
+    es.update(index=es_index_name, id=doc_id, body=update_body)
+    print(f"✅ 文档 {doc_id} 已更新。")
+
+
+def delete_fields_values(es_index_name):
+    # 使用 painless 脚本删除字段
+    delete_fields_script = {
+        "script": {
+            "source": """
+                if (ctx._source.containsKey('company_name')) {
+                    ctx._source.remove('company_name');
+                }
+                if (ctx._source.containsKey('company_infomation')) {
+                    ctx._source.remove('company_infomation');
+                }
+            """
+        }
+    }
+
+    # 批量更新：删除所有文档中的字段
+    response = es.update_by_query(index=es_index_name, body=delete_fields_script, conflicts="proceed")
+    print(f"✅ 已从所有文档中删除字段数据。\n修改的文档数: {response['updated']}")
 if __name__ == '__main__':
     # delete_single_index("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_new")
-    delete_single_index("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_jkdata")
+    # delete_single_index("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_jkdata")
     # delete_by_id("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_jkdata","686178457968508928")
+    # update_add_fields("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page")
+    update_add_fields_values("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page")
+    # delete_fields_values("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page")
