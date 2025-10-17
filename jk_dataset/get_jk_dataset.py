@@ -5,16 +5,22 @@ from BI_data.utils.getdatainfo import recursion_row_chidren_all
 
 import json
 import requests
+import os
+from dotenv import load_dotenv
 
+# 加载 .env 文件（开发环境）
+load_dotenv()
+
+# 现在可以从环境变量中安全读取 token
+AUTH_TOKEN = os.getenv("SCIYON_AUTH_TOKEN")
+BASE_URL = os.getenv("BASE_URL")
 # 1. 请求地址
-URL = "http://10.44.2.104:9090/mainApi/syncplant-business-dataset/api/empoworx/dataset/rag/getDatasetConfigInfo"
+# URL = "http://10.44.2.104:9090/mainApi/syncplant-business-dataset/api/empoworx/dataset/rag/getDatasetConfigInfo"
 
 # 2. 请求头（按需调整）
 HEADERS = {
     "Content-Type": "application/json;charset=utf-8",
     "Accept": "application/json, text/plain, */*",
-    # "Authorization": "Bearer YOUR_TOKEN_HERE",   # 如需 Token
-    # "Cookie": "JSESSIONID=xxx"                   # 如需 Cookie
 }
 
 # 3. 请求体（直接复用题目中的 JSON）
@@ -51,9 +57,8 @@ def fetch_dataset(url: str, payload: dict, headers: dict, timeout: int = 30):
     return None
 
 
-response_data = fetch_dataset(URL, PAYLOAD, HEADERS)
+response_data = fetch_dataset(BASE_URL, PAYLOAD, HEADERS)
 all_data = response_data["data"]
-# print(all_data)
 
 
 each_item = {}
@@ -84,7 +89,7 @@ for item in all_data.items():
         "fields_info": fields_info,
         "has_main_column": has_main_column,
         "main_column_info": main_column_info,
-        "vector_name": qv_vector[0].embedding
+        "vector": qv_vector[0].embedding
     }
 
 # 把读取的数据存储到ES数据库中

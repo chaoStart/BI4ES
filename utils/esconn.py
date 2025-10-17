@@ -8,6 +8,24 @@ es = Elasticsearch("http://10.3.24.46:9200", basic_auth=("elastic", "sciyon"), v
 # print(es.indices.get_mapping(index=es_index_name))
 print("***********")
 
+# 调用 _analyze 接口，使用 IK 分词器
+def ik_analyze(text, analyzer="ik_max_word"):
+    """
+    使用 IK 分词器对文本进行分析
+    :param text: 输入文本
+    :param analyzer: 可选 "ik_max_word"（细粒度）或 "ik_smart"（粗粒度）
+    :return: 分词结果列表
+    """
+    response = es.indices.analyze(
+        body={
+            "analyzer": analyzer,
+            "text": text
+        }
+    )
+    # 提取分词结果
+    tokens = [token["token"] for token in response["tokens"]]
+    return tokens
+
 
 def storage_api2es(each_item):
     # ES数据库中创建具有向量数据的索引
@@ -31,7 +49,6 @@ def storage_api2es(each_item):
                 "mappings": {
                     "properties": {
                         "id": {"type": "keyword"},
-                        "kb_id": {"type": "keyword"},
                         "name": {
                             "type": "text",
                             "analyzer": "ik_max_word",
@@ -42,7 +59,7 @@ def storage_api2es(each_item):
                                 }
                             }
                         },
-                        "api_description": {
+                        "description": {
                             "type": "text",
                             "analyzer": "ik_max_word",
                             "search_analyzer": "ik_smart"
@@ -85,18 +102,16 @@ def storage_api2es(each_item):
     actions = []
     for item in each_item.values():
         api_id = item["id"]
-        kb_id = item["kb_id"]
         name = str(item["name"])
-        api_description = str(item["api_description"])
+        description = str(item["description"])
         api_config = str(item["api_config"])
         embeded_type = item["embeded_type"]
         qv_vector = item["vector"]
 
         doc = {
             "id": api_id,
-            "kb_id": kb_id,
             "name": name,
-            "api_description": api_description,
+            "description": description,
             "api_config": api_config,
             "embeded_type": embeded_type,
             "vector": qv_vector
@@ -128,8 +143,8 @@ def storage_page2es(each_item):
                 },
                 "mappings": {
                     "properties": {
-                        "page_id": {"type": "keyword"},
-                        "page_name": {
+                        "id": {"type": "keyword"},
+                        "name": {
                             "type": "text",
                             "analyzer": "ik_max_word",
                             "search_analyzer": "ik_smart",
@@ -139,7 +154,12 @@ def storage_page2es(each_item):
                                 }
                             }
                         },
-                        "page_description": {
+                        "description": {
+                            "type": "text",
+                            "analyzer": "ik_max_word",
+                            "search_analyzer": "ik_smart"
+                        },
+                        "description_ltks": {
                             "type": "text",
                             "analyzer": "ik_max_word",
                             "search_analyzer": "ik_smart"
@@ -191,18 +211,20 @@ def storage_page2es(each_item):
     # ES数据库中存储文本数据和向量数据
     actions = []
     for item in each_item.values():
-        page_id = item["page_id"]
-        page_name = str(item["page_name"])
-        page_description = str(item["page_description"])
+        page_id = item["id"]
+        page_name = str(item["name"])
+        page_description = str(item["description"])
+        page_description_ltks = str(item["description_ltks"])
         page_url = item["page_url"]
         params = item["params"]
         embeded_type = item["embeded_type"]
         qv_vector = item["vector"]
 
         doc = {
-            "page_id": page_id,
-            "page_name": page_name,
-            "page_description": page_description,
+            "id": page_id,
+            "name": page_name,
+            "description": page_description,
+            "description_ltks": page_description_ltks,
             "page_url": page_url,
             "params": params,
             "embeded_type": embeded_type,
@@ -291,7 +313,7 @@ def storage_jkdata2es(each_item):
                                 }
                             }
                         },
-                        "vector_name": {
+                        "vector": {
                             "type": "dense_vector",
                             "dims": EMBEDDING_DIM,
                             "index": True,
@@ -315,7 +337,7 @@ def storage_jkdata2es(each_item):
         fields_info = str(item["fields_info"])
         has_main_column = item["has_main_column"]
         main_column_info = item["main_column_info"]
-        qv_vector = item["vector_name"]
+        qv_vector = item["vector"]
 
         doc = {
             "id": data_id,
@@ -325,7 +347,7 @@ def storage_jkdata2es(each_item):
             "fields_info": fields_info,
             "has_main_column": has_main_column,
             "main_column_info": main_column_info,
-            "vector_name": qv_vector
+            "vector": qv_vector
         }
         actions.append({"_index": es_index_name, "_id": data_id, "_source": doc})
 
@@ -433,8 +455,8 @@ def delete_fields_values(es_index_name):
     print(f"✅ 已从所有文档中删除字段数据。\n修改的文档数: {response['updated']}")
 if __name__ == '__main__':
     # delete_single_index("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_new")
-    # delete_single_index("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_jkdata")
+    delete_single_index("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page")
     # delete_by_id("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_jkdata","686178457968508928")
     # update_add_fields("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page")
-    update_add_fields_values("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page")
+    # update_add_fields_values("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page")
     # delete_fields_values("ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page")

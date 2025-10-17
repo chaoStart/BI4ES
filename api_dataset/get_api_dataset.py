@@ -3,17 +3,26 @@ import requests
 import json
 from BI_data.utils.esconn import storage_api2es
 from BI_data.utils.embedde_utils import get_embedding
+import os
+from dotenv import load_dotenv
 
+# 加载 .env 文件（开发环境）
+load_dotenv()
+
+# 现在可以从环境变量中安全读取 token
+AUTH_TOKEN = os.getenv("SCIYON_AUTH_TOKEN")
+BASE_URL = os.getenv("BASE_URL")
 # 请求地址
-url = "http://10.44.2.104:9090/mainApi/syncplant-business-rag-wangchao/api/api/listAll"
+# url = "http://10.44.2.104:9090/mainApi/syncplant-business-rag-wangchao/api/api/listAll"
 
 # 请求头
 headers = {
-    "sciyon-auth": "bearer 77d58af8-924f-408e-88a4-ad1bb8ef81ac"
+    # "sciyon-auth": "bearer 77d58af8-924f-408e-88a4-ad1bb8ef81ac"
+    "sciyon-auth": AUTH_TOKEN
 }
 
 # 发送 GET 请求
-response = requests.get(url, headers=headers)
+response = requests.get(BASE_URL, headers=headers)
 api_datasets = response.text
 print("APi的数据类型", type(api_datasets))
 
@@ -49,15 +58,14 @@ print(all_data)
 each_item = {}
 for item in all_data:
     key = item["id"]
-    # qv_vector =get_embedding(item["name"])
-    qv_vector =get_embedding(item["description"])
+    qv_vector =get_embedding(item["name"])
+    # qv_vector =get_embedding(item["description"])
     each_item[key] = {
         "id": item["id"],
-        "kb_id": item["knowledgebaseId"],
         "name": item["name"],
-        "api_description": item["description"],
+        "description": item["description"],
         "api_config": item["config"],
-        "embeded_type": "api_description",
+        "embeded_type": "api_name",
         "vector": qv_vector[0].embedding
     }
 

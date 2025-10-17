@@ -11,6 +11,7 @@ load_dotenv()
 
 # 现在可以从环境变量中安全读取 token
 AUTH_TOKEN = os.getenv("SCIYON_AUTH_TOKEN")
+BASE_URL = os.getenv("BASE_URL")
 app = Flask(__name__)
 
 @app.route('/sync_apis', methods=['POST'])

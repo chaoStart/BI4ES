@@ -1,7 +1,7 @@
 
 import requests
 import json
-from BI_data.utils.esconn import storage_page2es
+from BI_data.utils.esconn import storage_page2es,ik_analyze
 from BI_data.utils.embedde_utils import get_embedding
 import os
 from dotenv import load_dotenv
@@ -58,11 +58,15 @@ for item in all_data:
     key = item["id"]
     # qv_vector =get_embedding(item["name"])
     qv_vector =get_embedding(item["name"])
+    # IK分词
+    tokens_max = ik_analyze(item["description"], "ik_max_word")
+    tokens_max = ' '.join(tokens_max)
     each_item[key] = {
-        "page_id": item["id"],
-        "page_name": item["name"],
+        "id": item["id"],
+        "name": item["name"],
         "page_url": item["pageUrl"],
-        "page_description": item["description"],
+        "description": item["description"],
+        "description_ltks": tokens_max,
         "params": item["params"],
         "embeded_type": "page_name",
         "vector": qv_vector[0].embedding
