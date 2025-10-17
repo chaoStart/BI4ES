@@ -2,6 +2,7 @@
 from elasticsearch import Elasticsearch
 from BI_data.utils.embedde_utils import get_embedding
 from BI_data.utils.youtu import get_youtu
+from BI_data.utils.prompt import relevant_prompt
 es = Elasticsearch("http://10.3.24.46:9200", basic_auth=("elastic", "sciyon"), verify_certs=False)
 # index_name = "ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_api"
 index_name = ["ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_api", "ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_jkdata", "ragflow_sciyonff8bcdc11efbdcf88aedd6333bi_page"]
@@ -152,3 +153,34 @@ for v in high_indicator_res:
     candidate.append(v["name"])
 
 get_youtu(query_text, candidate)
+
+# 通过大模型判断相关性
+prompt = relevant_prompt(query_text, candidate)
+import requests
+
+# url = "https://748a160d1341.ngrok-free.app/v1/chat/completions"
+url = "http://10.3.24.46:9997/v1/chat/completions"
+
+headers = {
+    "accept": "application/json",
+    "Content-Type": "application/json"
+}
+
+payload = {
+    "model": "qwen2.5-instruct",
+    "messages": [
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": prompt}
+    ]
+}
+
+try:
+    response = requests.post(url, headers=headers, json=payload, timeout=900)
+    response.raise_for_status()  # 如果返回码不是 2xx 会抛异常
+    print("状态码:", response.status_code)
+    print("响应数据:", response.json())
+    response =response.json()["choices"][0]["message"]["content"]
+    print("检索数据的编号:", response)
+    print("意图识别的结果:\n", candidate[int(response)])
+except requests.exceptions.RequestException as e:
+    print("请求失败:", e)
