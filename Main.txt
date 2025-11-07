@@ -6,7 +6,7 @@ import com.openai.models.chat.completions.ChatCompletion;
 import com.openai.models.chat.completions.ChatCompletionCreateParams;
 
 public class Main {
-    final static String DASHSCOPE_API_KEY = "sk-123456";
+    final static String DASHSCOPE_API_KEY = "sk-84683c3840694009b2251e9ea40ed3dd";
     public static void main(String[] args) {
         OpenAIClient client = OpenAIOkHttpClient.builder()
                 .apiKey(DASHSCOPE_API_KEY)
